@@ -7,4 +7,4 @@ try:
 except ModuleNotFoundError:
     from importlib_metadata import version
 
-__version__ = version("2022-sbi-ci-workflow-cryptonite")
+__version__ = version("2022-sbi-ci-workflow-cryptonite-mingyi")
