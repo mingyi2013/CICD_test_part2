@@ -1,0 +1,91 @@
+# Copyright (C) 2022 Roberto Rossini (roberros@uio.no)
+# SPDX-License-Identifier: MIT
+
+name: Package Cryptonite
+
+on:
+  # Reusable workflow
+  workflow_call:
+    # Define workflows input parameters
+    # The callee can pass parameters using the with: keyword
+    inputs:
+      os:
+        description: OS to use for packaging
+        default: 'ubuntu-latest'
+        required: false
+        type: string
+      python-version:
+        description: Python version to use for packaging
+        default: '3.11'
+        required: false
+        type: string
+
+    # Define workflow outputs
+    outputs:
+      pkg-artifact:
+        description: Name of the package artifact created by this workflow
+        value: ${{ jobs.tar-package.outputs.name }}
+
+    # Note how the workflow output is set based on the output of job tar-package (defined below)
+
+jobs:
+  create-package:
+    name: Package Cryptonite
+    runs-on: ${{ inputs.os }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ inputs.python-version }}
+          # Enable caching of pip packages so that they will be downloaded from PyPI only once
+          cache-dependency-path: pyproject.toml
+          cache: pip
+
+      - name: Create Python virtualenv
+        run: python3 -m venv ./venv --upgrade
+
+      - name: Install build dependencies
+        run: venv/bin/python3 -m pip install --upgrade pip '.[all]'
+
+      - name: Create package
+        run: |
+          venv/bin/python3 -m build . --outdir pkg/
+          
+          cp LICENSE pyproject.toml README.md pkg/
+          
+
+      - name: Extract version
+        id: extract-version
+        working-directory: pkg/
+        run: |
+          # Given a wheel named like:
+          # 2022_sbi_ci_workflow_cryptonite-1.0.0-py3-none-any.whl
+          # Extract version 1.0.0
+          ver="$(printf "%s" *.whl | cut -d $'-' -f2)"
+          
+          # Define a step output named "version".
+          # Later steps can reference this output with ${{ steps.extract-version.outputs.version }}
+          echo "version=$ver" >> $GITHUB_OUTPUT
+
+      - name: TAR package
+        id: tar-package
+        run: |
+          archive_prefix="cryptonite-v${{ steps.extract-version.outputs.version }}"
+          
+          mv pkg/ "$archive_prefix/"
+          tar -cJf "$archive_prefix.tar.xz" "$archive_prefix/"
+          
+          # This output can be accessed through the ${{ steps.tar-package.outputs.name }} variable
+          echo "name=$archive_prefix" >> $GITHUB_OUTPUT
+
+      - name: Upload package artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ steps.tar-package.outputs.name }}
+          path: ${{ steps.tar-package.outputs.name }}.tar.xz
+          if-no-files-found: error
+          retention-days: 3

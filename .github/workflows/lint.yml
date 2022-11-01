@@ -1,0 +1,43 @@
+# Copyright (C) 2022 Roberto Rossini (roberros@uio.no)
+# SPDX-License-Identifier: MIT
+
+name: Lint project
+
+on:
+  # Reusable workflow
+  workflow_call:
+
+jobs:
+  check-formatting:
+    name: Check project formatting with Black
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      # Ensure project follows black code style
+      - uses: psf/black@stable
+        with:
+         options: "--check --verbose --diff --color"
+
+  run-pylint:
+    name: Lint project with PyLint
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+          cache-dependency-path: pyproject.toml
+          cache: pip
+
+      - name: Install devel deps (incl. PyLint)
+        run: pip3 install '.[devel]'
+
+      - name: Run PyLint
+        run: pylint cryptonite/

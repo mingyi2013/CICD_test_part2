@@ -1,0 +1,102 @@
+# Copyright (C) 2022 Roberto Rossini (roberros@uio.no)
+# SPDX-License-Identifier: MIT
+
+name: Build Docker image
+
+on:
+  push:
+    branches: [ main, cryptonite-ci ]
+    paths:
+      - ".github/workflows/build-docker-image.yml"
+      - ".github/workflows/lint.yml"
+      - "cryptonite/**"
+      - "Dockerfile"
+      - "pyproject.toml"
+      - "setup.py"
+
+    tags:
+      - 'v*.*.*'
+
+  pull_request:
+    paths:
+      - ".github/workflows/build-docker-image.yml"
+      - ".github/workflows/lint.yml"
+      - "cryptonite/**"
+      - "Dockerfile"
+      - "pyproject.toml"
+      - "setup.py"
+
+jobs:
+  lint:
+    name: Lint project
+    uses: ./.github/workflows/lint.yml
+
+  build-dockerfile:
+    runs-on: ubuntu-latest
+    needs: lint
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Collect project metadata
+        # Use an action to collect metadata for docker build
+        id: meta
+        uses: docker/metadata-action@v4
+        with:
+          # Upload image to GHCR.io instead of DockerHub
+          images: ghcr.io/${{ github.repository }}/cryptonite
+
+          flavor: latest=true
+
+          # Define tags with acending priorities
+          tags: |
+            type=pep440,priority=1000,pattern={{version}}
+            type=sha,priority=900
+            type=ref,priority=800,event=branch
+            type=ref,priority=700,event=pr
+
+      # Login to the container registry on GitHub so that final Docker image
+      # can be uploaded to the registry
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io  # Omit this to log to DockerHub
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Build Docker image and push to registries
+        uses: docker/build-push-action@v3
+        with:
+          push: ${{ github.event_name != 'pull_request' }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: BUILDKIT_CONTEXT_KEEP_GIT_DIR=1
+
+  test-docker-image:
+    needs: build-dockerfile
+    runs-on: ubuntu-latest
+
+    container:
+      image: ghcr.io/${{ github.repository }}/cryptonite:latest
+      options: '--entrypoint /bin/bash'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Test image
+        run: |
+          echo 'Super duper secret message' > test.txt
+          
+          scripts/test/integration_test.sh \
+            cryptonite \
+            test.txt \
+            17

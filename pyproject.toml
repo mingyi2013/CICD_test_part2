@@ -1,0 +1,73 @@
+# Copyright (C) 2022 Roberto Rossini <roberros@uio.no>
+# SPDX-License-Identifier: MIT
+
+[build-system]
+requires = ["setuptools>=45", "setuptools-scm>=7.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+
+name = "2022-sbi-ci-workflow-cryptonite"
+description = "robust encryption for the citizens of Metropolis!"
+readme = "README.md"
+requires-python = ">=3.7"
+license = { text = "MIT License" }
+classifiers = [
+    "Intended Audience :: Information Technology",
+    "License :: OSI Approved :: MIT License",
+    "Natural Language :: English",
+    "Operating System :: POSIX :: Linux",
+    "Operating System :: MacOS :: MacOS X",
+    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Topic :: Security :: Cryptography"
+]
+
+dependencies = [
+    'importlib-metadata; python_version<"3.8"',
+    "numpy>=1.20"
+]
+
+dynamic = ["version"]
+
+[project.optional-dependencies]
+test = ["pytest>=5.3"]
+devel = [
+    "black>=22",
+    "build",
+    "isort>=5.10",
+    "pep8",
+    "pylint>=2.6"
+]
+all = [
+    "2022-sbi-ci-workflow-cryptonite[test]",
+    "2022-sbi-ci-workflow-cryptonite[devel]"
+]
+
+[project.scripts]
+cryptonite = "cryptonite.__main__:main"
+
+[tool.setuptools_scm]
+write_to = "cryptonite/_version.py"
+
+[tool.setuptools.packages.find]
+include = ["cryptonite*"]
+exclude = ["cryptonite.test*"]
+
+[tool.black]
+line-length = 120
+target-version = ["py37"]
+
+[tool.isort]
+profile = "black"
+
+[tool.pylint.messages_control]
+disable = [
+    "missing-module-docstring",
+    "missing-function-docstring"
+]
+ignore = ["_version.py"]
+max-line-length = 120
+py-version = "3.7"
