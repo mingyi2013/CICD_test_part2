@@ -7,7 +7,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 
-name = "2022-sbi-ci-workflow-cryptonite"
+name = "2022-sbi-ci-workflow-cryptonite-mingyi"
 description = "robust encryption for the citizens of Metropolis!"
 readme = "README.md"
 requires-python = ">=3.7"
@@ -42,8 +42,8 @@ devel = [
     "pylint>=2.6"
 ]
 all = [
-    "2022-sbi-ci-workflow-cryptonite[test]",
-    "2022-sbi-ci-workflow-cryptonite[devel]"
+    "2022-sbi-ci-workflow-cryptonite-mingyi[test]",
+    "2022-sbi-ci-workflow-cryptonite-mingyi[devel]"
 ]
 
 [project.scripts]
